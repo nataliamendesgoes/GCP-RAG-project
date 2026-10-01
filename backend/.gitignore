@@ -1,0 +1,27 @@
+# --- Ambientes Virtuais ---
+venv/
+.venv/
+env/
+ENV/
+venv312/
+# --- Arquivos de Ambiente (Senhas/Chaves) ---
+.env
+.env.local
+
+# --- Python Cache (Lixo gerado pelo Python) ---
+__pycache__/
+*.py[cod]
+*$py.class
+
+# --- Banco de Dados Vetorial (Não suba isso!) ---
+# O ChromaDB/Embedding é pesado e gerado localmente pelo ingest.py
+embedding/
+chroma_db/
+db/
+
+# --- IDEs (Configurações do seu editor) ---
+.vscode/
+.idea/
+
+# --- Logs e Dados Temporários ---
+*.log

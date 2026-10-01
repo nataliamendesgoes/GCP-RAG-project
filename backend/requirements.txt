@@ -1,0 +1,21 @@
+# Requisitos para o backend do projeto
+fastapi>=0.111.0
+uvicorn[standard]>=0.29.0
+pydantic>=2.0.0
+python-dotenv>=1.0.0
+# --- Core do Framework ---
+langchain
+langchain-community
+langchain-core
+langchain-text-splitters
+
+# --- Integrações Oficiais (Modernas) ---
+langchain-chroma
+langchain-ollama
+
+# --- Banco de Dados Vetorial ---
+chromadb
+
+# --- Análise de Código (Parser) ---
+tree-sitter
+tree-sitter-languages

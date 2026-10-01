@@ -1,0 +1,26 @@
+# Segredos
+.env
+.env.*
+
+# Ambiente Python
+venv/
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# Logs e dados gerados
+logs/
+backend/logs/
+
+# Editor / ferramentas locais
+.vscode/
+.claude/settings.local.json
+
+# Site gerado (cópia local de frontend/chat_rag/out)
+static/
+
+# Editor / ferramentas locais
+.vscode/
+.claude/
+CLAUDE.md

@@ -1,0 +1,4 @@
+fastapi==0.110.0
+uvicorn==0.27.1
+# Framework MASPY oficial (o pacote "maspy" no PyPI é outra biblioteca). Exige Python 3.12+
+maspy-ml==2026.5.13

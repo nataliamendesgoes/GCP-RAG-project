@@ -1,0 +1,28 @@
+# Arquivos que o `gcloud run deploy --source .` NÃO envia.
+# A imagem precisa de: Dockerfile, requirements.txt, app/ e o código de frontend/chat_rag/
+.gcloudignore
+.git/
+.gitignore
+.env
+.env.*
+.vscode/
+.claude/
+venv/
+backend/
+data/
+scripts/
+logs/
+firebase/
+**/__pycache__/
+*.pyc
+
+# Frontend: vai o código-fonte, não o que é gerado localmente
+frontend/package-lock.json
+frontend/chat_rag/node_modules/
+frontend/chat_rag/.next/
+frontend/chat_rag/out/
+frontend/chat_rag/.env.development.local
+# ...mas o .env.production precisa ir (define a API em /api no build)
+!frontend/chat_rag/.env.production
+static/
+runner/

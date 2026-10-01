@@ -1,0 +1,13 @@
+venv/
+.env
+.git/
+backend/
+data/
+scripts/
+firebase/
+**/__pycache__/
+frontend/chat_rag/node_modules/
+frontend/chat_rag/.next/
+frontend/chat_rag/out/
+frontend/chat_rag/.env.development.local
+runner/
