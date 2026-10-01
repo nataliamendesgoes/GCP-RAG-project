@@ -19,9 +19,10 @@ interface Props {
   error: string | null
   online: boolean | null
   onSubmit: (text: string) => void
+  onNewChat: () => void
 }
 
-export function ChatPanel({ messages, loading, error, online, onSubmit }: Props) {
+export function ChatPanel({ messages, loading, error, online, onSubmit, onNewChat }: Props) {
   const [text, setText] = useState('')
   const endRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
@@ -44,6 +45,14 @@ export function ChatPanel({ messages, loading, error, online, onSubmit }: Props)
     setText('')
   }
 
+  const newChat = () => {
+    if (window.confirm('Começar uma nova conversa? As mensagens e o código atual serão apagados.')) {
+      onNewChat()
+      setText('')
+      inputRef.current?.focus()
+    }
+  }
+
   const onKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault()
@@ -59,6 +68,12 @@ export function ChatPanel({ messages, loading, error, online, onSubmit }: Props)
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/maspy-logo.png" alt="MASPY — Multi-Agent System for Python" width={257} height={88} />
         </h1>
+        {messages.length > 0 && (
+          <button type="button" className="new-chat" onClick={newChat} disabled={loading} title="Apaga a conversa e o código atual">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg>
+            Nova conversa
+          </button>
+        )}
         {MOCK && <span className="mock-badge" title="Respostas simuladas (lib/mock.ts), sem chamar a API">simulado</span>}
         <span
           className={`api-status ${online ? 'on' : online === false ? 'off' : ''}`}

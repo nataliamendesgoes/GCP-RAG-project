@@ -7,7 +7,7 @@ import { useChat } from '@/hooks/useChat'
 import { checkHealth } from '@/lib/api'
 
 export default function Home() {
-  const { messages, code, updatedAt, loading, error, submit } = useChat()
+  const { messages, code, updatedAt, loading, error, submit, reset } = useChat()
   const [online, setOnline] = useState<boolean | null>(null)
 
   useEffect(() => {
@@ -16,7 +16,7 @@ export default function Home() {
 
   return (
     <main className="layout">
-      <ChatPanel messages={messages} loading={loading} error={error} online={online} onSubmit={submit} />
+      <ChatPanel messages={messages} loading={loading} error={error} online={online} onSubmit={submit} onNewChat={reset} />
       <CodePanel code={code} updatedAt={updatedAt} />
     </main>
   )

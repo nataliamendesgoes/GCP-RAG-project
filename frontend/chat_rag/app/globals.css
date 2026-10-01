@@ -102,6 +102,23 @@ button:focus-visible, textarea:focus-visible { outline: 2px solid var(--accent);
 }
 .logo { line-height: 0; }
 .logo img { height: 56px; width: auto; }
+.new-chat {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+  font-size: 13.5px;
+  font-weight: 500;
+  padding: 7px 12px;
+  border: 1.5px solid var(--border);
+  border-radius: 8px;
+  background: var(--accent-soft);
+  white-space: nowrap;
+  transition: background 0.15s;
+}
+.new-chat:hover:not(:disabled) { background: var(--accent); }
+.new-chat:disabled { opacity: 0.45; }
+.new-chat + .mock-badge + .api-status, .new-chat + .api-status { margin-left: 0; }
 .mock-badge {
   font-family: var(--font-mono), monospace;
   font-size: 12px;
