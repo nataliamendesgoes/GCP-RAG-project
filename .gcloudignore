@@ -8,7 +8,6 @@
 .vscode/
 .claude/
 venv/
-backend/
 data/
 scripts/
 logs/

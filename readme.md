@@ -1,102 +1,192 @@
-# MASPY RAG API & LLM Agent Pipeline
+# MASPY Code Generator
 
-An advanced **Retrieval-Augmented Generation (RAG)** infrastructure designed to generate, integrate, and audit code for the **MASPY** BDI agent framework.
+Generate and run **[MASPy](https://github.com/laca-is/maspy)** multi-agent systems from natural-language requests.
 
-This project uses Google Cloud Run to expose a FastAPI application that orchestrates a multi-agent LLM chain (Gemini 1.5 Flash) backed by a vector database (Pinecone).
+Undergraduate research project (Iniciação Científica). You describe the agents you want (in Portuguese), a **RAG** pipeline retrieves real MASPy examples and an LLM writes the program, and you can run it right from the browser and watch each agent's output.
 
-## 🧠 Agent Pipeline Architecture
+> **MASPy** is a Python framework for BDI (Beliefs, Desires, Intentions) multi-agent systems: agents, reactive plans, beliefs, goals, environments and agent communication.
 
-To ensure the generated MASPY code strictly adheres to BDI survival rules (separation of agents and environments, correct belief usage, and life-cycle management), the system implements an **LLM Chain** with three distinct roles:
+**Live:** https://maspy.web.app
 
-1. **Architect Agent:** Retrieves context from Pinecone and designs the core BDI classes (Agents and Environments).
-2. **Integrator Agent:** Receives the classes and builds the main execution block (`if __name__ == "__main__":`), managing the connection topology.
-3. **Senior Reviewer Agent:** Inspects the final code for logical flaws (e.g., premature `stop_cycle()`, sending messages to environments) and returns the sanitized code.
+---
 
-## 📂 Project Structure
+## Features
 
-The repository is organized into the following main directories:
+- **Chat that writes MASPy code**: grounded in the example corpus in `data/` (retrieved from Pinecone).
+- **Follow-up edits**: "add a third agent" changes the current program (the site sends the current code with the request).
+- **Run in the browser**: the **Executar** button runs the program in an isolated sandbox and shows the output with MASPy's own terminal colors.
+- **Static view of the program**: agents, beliefs/goals/percepts and `self.send` calls per class.
+- **Off-topic guard**: questions unrelated to multi-agent systems / MASPy are answered with a fixed message **without calling Gemini**.
+- **Conversation saved in the browser**, plus a **New conversation** button.
+- Copy / download the generated `maspy_system.py`.
 
-* **`app/`**: Contains the core FastAPI logic, RAG orchestration, and Gemini prompts.
-* **`data/`**: Python (`.py`) files with MASPY code examples used to populate the vector database.
-* **`scripts/`**: Independent utilities, including `ingest.py` to process and send embeddings to Pinecone.
-* **`frontend/`**: Client application built with Next.js/React (`chat_rag/`) for graphical interaction with the API.
-* **`backend/`**: Legacy logic and local integrations with the MASPY framework core (`codigos_maspy/`).
-* **`runner/`**: Configurations (including a `Dockerfile`) for a secure execution sandbox for the generated code.
+---
 
-## 🛠️ Tech Stack
+## Architecture
 
-* **API Framework:** FastAPI (Python 3.11)
-* **LLM & Embeddings:** Google Gemini 1.5 Flash & `models/embedding-001`
-* **Orchestration:** LangChain
-* **Vector Database:** Pinecone
-* **Cloud Infrastructure:** Google Cloud Run, Cloud Build, Artifact Registry
+```
+Browser
+  │   https://maspy.web.app            (Firebase Hosting: forwards every path to Cloud Run)
+  ▼
+Cloud Run · maspy-rag-api               (FastAPI, Python 3.11)
+  ├── /                     static Next.js site (built inside the Docker image)
+  ├── GET  /api/            health check
+  ├── POST /api/chat        off-topic guard ─▶ Pinecone (top 3 examples) ─▶ Gemini
+  └── POST /api/executar    ─────────────▶ Cloud Run · maspy-runner
+                                            (Python 3.12 + maspy-ml, no API keys,
+                                             permissionless service account,
+                                             15 s per run, not public)
+```
 
-## 🚀 Step-by-Step Local Setup
+**How a question is answered** (`app/rag_service.py`):
 
-### 1. Prerequisites
-Ensure Python 3.11+ is installed. Create a `.env` file in the root directory (ignored by Git) with your API keys:
+1. `app/guardrails.py` rejects off-topic questions (keyword check, no API cost).
+2. Keyword intent detection (`app/domain.py`) picks MASPy entities (Agent, Communication, Belief_Goal, Environment…).
+3. The question is embedded with `gemini-embedding-001` (768 dims, `app/embeddings.py`) and searched in the Pinecone index `rag-docs`, filtered by those entities, keeping the 3 closest example files.
+4. A single Gemini call (`GEMINI_MODEL`, default `gemini-3.5-flash-lite`) writes the full program using only API seen in the examples.
+5. The site splits the answer: the explanation stays in the chat and the program goes to the code panel.
+
+---
+
+## Project structure
+
+```
+app/                  Cloud API (FastAPI): routes, guard, RAG chain, embeddings
+runner/               Isolated code executor (separate Cloud Run service)
+frontend/chat_rag/    Next.js site (chat + code panel + console)
+data/                 MASPy example programs (the RAG knowledge base)
+scripts/ingest.py     Uploads data/ to Pinecone
+firebase/             Firebase Hosting config for the friendly URL
+Dockerfile            Builds the site (Node) and the API (Python) into one image
+```
+
+---
+
+## Running locally
+
+### Prerequisites
+
+- Python **3.11** (API) and Python **3.12** (executor; MASPy requires 3.12+)
+- Node.js **20+**
+- A [Gemini API key](https://aistudio.google.com/) and a [Pinecone](https://www.pinecone.io/) account
+
+Create a `.env` file in the project root (it is git-ignored):
+
 ```env
-GOOGLE_API_KEY=your_gemini_api_key
-PINECONE_API_KEY=your_pinecone_api_key
+GOOGLE_API_KEY=your_gemini_key
+PINECONE_API_KEY=your_pinecone_key
+RUNNER_URL=http://localhost:8081
+# optional: GEMINI_MODEL=gemini-3.8-flash
 ```
 
-### 2. Installation
-Create a virtual environment and install the required dependencies:
+### 1. Install
+
 ```bash
+# API
 python -m venv venv
-# On Windows:
-venv\Scripts\activate
-# On Linux/macOS:
-source venv/bin/activate
+venv/Scripts/python -m pip install -r requirements.txt          # Linux/macOS: venv/bin/python
 
-pip install -r requirements.txt
+# Executor (Python 3.12)
+py -3.12 -m venv runner/.venv                                   # Linux/macOS: python3.12 -m venv runner/.venv
+runner/.venv/Scripts/python -m pip install -r runner/requirements.txt
+
+# Site
+cd frontend/chat_rag && npm install
 ```
 
-### 3. Data Ingestion
-Process the example files in the `data/` directory and send their embeddings to Pinecone:
+### 2. Load the examples into Pinecone (once)
+
+Create an index named **`rag-docs`** with **768 dimensions** and the **cosine** metric, then:
+
 ```bash
-python scripts/ingest.py
+venv/Scripts/python scripts/ingest.py
 ```
 
-### 4. Running the API Locally
-Start the FastAPI server:
+### 3. Start the services (one terminal each, from the project root)
+
 ```bash
-uvicorn app.main:app --reload
+runner/.venv/Scripts/python -m uvicorn main:app --app-dir runner --port 8081   # executor
+venv/Scripts/python -m uvicorn app.main:app --port 8080                         # API
+cd frontend/chat_rag && npm run dev                                             # site on :3000
 ```
-The API will be available at `http://127.0.0.1:8000`. Access the Swagger UI at `http://127.0.0.1:8000/docs` to test the endpoints.
 
-## ☁️ Google Cloud Run Deployment
+Open **http://localhost:3000**. The dev site is configured in `frontend/chat_rag/.env.development.local`:
 
-Deployment is handled via the Google Cloud CLI using the provided `Dockerfile`.
+| `NEXT_PUBLIC_API_MOCK` | Chat | Executar | Gemini cost |
+|---|---|---|---|
+| `1` | canned answers (`lib/mock.ts`) | simulated | none |
+| `chat` | canned answers | **real** (local executor) | none |
+| `0` | **real** | **real** | 1 request per question |
 
-### 1. Authenticate and Setup
-Authenticate your Google account and set your project:
+To test the production setup (site served by the API on **http://localhost:8080**), build the site and copy it to `static/`:
+
 ```bash
-gcloud init
+cd frontend/chat_rag && npm run build && cd ../.. && rm -rf static && cp -r frontend/chat_rag/out static
 ```
 
-### 2. Build and Deploy
-Deploy the application directly from the source code:
+---
+
+## Deploying to Google Cloud
+
+Project `maspy-rag-api-2026`, region `us-central1`. Run from the project root.
+
+### Updating (everyday use)
+
 ```bash
-gcloud run deploy maspy-rag-api --source . --region us-central1 --allow-unauthenticated
+# Site + API (the site is built inside the image)
+gcloud run deploy maspy-rag-api --source . --region us-central1 --project maspy-rag-api-2026
+
+# Executor (only when runner/ changes)
+gcloud run deploy maspy-runner --source runner --region us-central1 --project maspy-rag-api-2026
 ```
 
-### 3. Inject Environment Variables
-Securely inject your API keys into the active Cloud Run service:
+`https://maspy.web.app` picks up new revisions automatically. What is uploaded is controlled by `.gcloudignore` (keys, `venv/`, `node_modules/` and `.next/` stay out).
+
+### First-time setup
+
 ```bash
-gcloud run services update maspy-rag-api --update-env-vars GOOGLE_API_KEY="your_api_key",PINECONE_API_KEY="your_api_key" --region us-central1
+# 1. Service account with no permissions, for the executor
+gcloud iam service-accounts create maspy-runner-sa --display-name "MASPY runner" --project maspy-rag-api-2026
+
+# 2. Executor: private, one run at a time, at most 3 instances
+gcloud run deploy maspy-runner --source runner --region us-central1 --project maspy-rag-api-2026 \
+  --service-account maspy-runner-sa@maspy-rag-api-2026.iam.gserviceaccount.com \
+  --no-allow-unauthenticated --concurrency 1 --max-instances 3 --memory 512Mi --timeout 30
+
+# 3. Allow the API (default compute service account) to call the executor
+gcloud run services add-iam-policy-binding maspy-runner --region us-central1 --project maspy-rag-api-2026 \
+  --member serviceAccount:PROJECT_NUMBER-compute@developer.gserviceaccount.com --role roles/run.invoker
+
+# 4. Site + API, with keys and the executor URL
+gcloud run deploy maspy-rag-api --source . --region us-central1 --project maspy-rag-api-2026 --allow-unauthenticated \
+  --update-env-vars GOOGLE_API_KEY=...,PINECONE_API_KEY=...,RUNNER_URL=https://maspy-runner-....run.app
 ```
 
-## 📝 API Usage Example
+Use `--update-env-vars` (not `--set-env-vars`) on later deploys so existing variables are kept.
 
-**Endpoint:** `POST /chat`
+**Friendly URL**: Firebase Hosting site `maspy` with a single rewrite of `**` to the `maspy-rag-api` service (see `firebase/firebase.json`). It only needs to be set up once, e.g. with `cd firebase && npx firebase-tools deploy --only hosting`.
 
-**Payload:**
+---
+
+## API
+
+| Method | Path | Body | Response |
+|---|---|---|---|
+| `GET` | `/api/` | – | `{"status": "online"}` |
+| `POST` | `/api/chat` | `{"pergunta": "..."}` | `{"resposta": "markdown with a python block"}` |
+| `POST` | `/api/executar` | `{"codigo": "..."}` | `{"status": "concluido" \| "erro" \| "tempo_esgotado", "saida", "erro", "duracao_s"}` |
+
+Example:
+
 ```json
-{
-  "pergunta": "Create a Thermostat agent that turns on the heater when the Room environment sends a cold percept."
-}
+POST /api/chat
+{ "pergunta": "Crie um vendedor e um comprador que negociam um preço. O comprador aceita qualquer valor abaixo de 50." }
 ```
 
-**Response:**
-A JSON object containing the fully structured, audited Python code ready to be executed by the MASPY framework.
+---
+
+## Costs and limits
+
+- **Gemini**: 1 request per on-topic question; off-topic questions are blocked before Gemini. The free tier allows a limited number of requests per day per model; when it runs out the chat shows a quota message (HTTP 429).
+- **Executor**: 15 s per run (agents that never call `stop_cycle()` are stopped), 512 MiB, one run per instance, at most 3 instances. The first run on a new instance is slower (~6–8 s) while pandas/numpy load.
+- **Firebase Hosting**: requests through `maspy.web.app` time out after 60 s.

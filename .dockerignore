@@ -1,7 +1,6 @@
 venv/
 .env
 .git/
-backend/
 data/
 scripts/
 firebase/
